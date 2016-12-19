@@ -178,7 +178,7 @@ func main() {
 	}
 
 	// XXX: Can't use ExpireAfter:0 as that's the default value and wouldn't enable TTL on the index
-	_ = session.DB("").C("state").EnsureIndex(mgo.Index{Key: []string{"expires_at"}, ExpireAfter: 1, Background: true})
+	_ = session.DB("").C("state").EnsureIndex(mgo.Index{Key: []string{"expires_at"}, ExpireAfter: 1 * time.Second, Background: true})
 
 	server := http.Server{
 		Addr:    *listen,
