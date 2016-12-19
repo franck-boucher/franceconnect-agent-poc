@@ -26,6 +26,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -34,11 +35,11 @@ import (
 )
 
 var (
-	mongoURI       = flag.String("mongo-uri", "localhost", "MongoDB dial URI")
+	mongoURI       = flag.String("mongo-uri", os.Getenv("OZFCA_MONGO_URI"), "MongoDB dial URI")
 	listen         = flag.String("listen", ":http", "Address on which to listen")
 	ozwilloBaseURI = flag.String("ozwillo", "https://accounts.ozwillo-preprod.eu", "Base URI of the Ozwillo Kernel")
-	clientId       = flag.String("client_id", "", "Client ID for FranceConnect Agent (both at Ozwillo and FranceConnect sides)")
-	clientSecret   = flag.String("client_secret", "", "Client secret for FranceConnect Agent (both at Ozwillo and FranceConnect sides)")
+	clientId       = flag.String("client_id", os.Getenv("OZFCA_CLIENT_ID"), "Client ID for FranceConnect Agent (both at Ozwillo and FranceConnect sides)")
+	clientSecret   = flag.String("client_secret", os.Getenv("OZFCA_CLIENT_SECRET"), "Client secret for FranceConnect Agent (both at Ozwillo and FranceConnect sides)")
 	fcaRedirectURI = flag.String("fcaRedirectUri", "https://fcagent.integ01.dev-franceconnect.fr/oidc_callback", "Redirect URI for FranceConnect Agent")
 )
 
