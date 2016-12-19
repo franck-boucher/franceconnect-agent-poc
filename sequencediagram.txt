@@ -1,0 +1,25 @@
+title Séquence d'authentification (FI Ozwillo)
+
+note right of Utilisateur: L'utilisateur a choisi Ozwillo comme FI, FC redirige vers celui-ci
+FC-->Utilisateur: Redirect 302 <Ozwillo_FCA_bridge>/user/authorize
+Utilisateur->Ozwillo-FCA: GET <Ozwillo_FCA_bridge>/user/authorize
+note right of Ozwillo-FCA: Adapte la requête à Ozwillo (acr_values dans state)
+Ozwillo-FCA-->Utilisateur: Redirect 302 <Ozwillo>/a/auth
+Utilisateur->Ozwillo: GET <Ozwillo>/a/auth
+note left of Ozwillo: Authentification de l'utilisateur par Ozwillo
+Ozwillo-->Utilisateur: Redirect 302 <Ozwillo-FCA>/oidc_callback
+Utilisateur->Ozwillo-FCA: GET <Ozwillo-FCA>/oidc_callback
+note right of Ozwillo-FCA: Adapte la requête à FC (acr_values dans Mongo associé à auth_code)
+Ozwillo-FCA-->Utilisateur: Redirect 302 <FC_URL>/oidc_callback
+Utilisateur->FC: GET <FC_URL>/oidc_callback
+FC->Ozwillo-FCA: POST <Ozwillo-FCA>/user/token
+Ozwillo-FCA->Ozwillo: POST <Ozwillo>/a/token
+Ozwillo->Ozwillo-FCA: HTTP Response 200
+note right of Ozwillo-FCA: re-signe l'ID Token, ré-associe acr_values dans Mongo avec access token
+Ozwillo-FCA->FC: HTTP Response 200
+FC->Ozwillo-FCA: GET <Ozwillo-FCA>/api/user
+Ozwillo-FCA->Ozwillo: GET <Ozwillo>/a/userinfo
+Ozwillo->Ozwillo-FCA: HTTP Response 200
+Ozwillo-FCA->Ozwillo-FCA: Récupération claims (basé sur sub, acr_values depuis Mongo)
+Ozwillo-FCA->FC: HTTP Response 200
+note right of Utilisateur: FranceConnect fournit le service à l'utilisateur
