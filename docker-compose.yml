@@ -1,0 +1,11 @@
+version: '2'
+volumes:
+  data:
+services:
+  mongo:
+    image: mongo:2.6
+    ports:
+      - "27017:27017"
+    volumes:
+      - data:/data/db
+    network_mode: bridge
