@@ -55,10 +55,10 @@ var (
 
 type state struct {
 	Id        string    `json:"-" bson:"_id"`
-	State     string    `json:"state,omitempty"`
+	State     string    `json:"state,omitempty" bson:",omitempty"`
 	Scope     string    `json:"scope"`
-	AcrValues string    `json:"acr_values,omitempty"`
-	Nonce     string    `json:"nonce,omitempty"`
+	AcrValues string    `json:"acr_values,omitempty" bson:"acr_values,omitempty"`
+	Nonce     string    `json:"nonce,omitempty" bson:",omitempty"`
 	ExpiresAt time.Time `json:"-" bson:"expires_at"`
 }
 
