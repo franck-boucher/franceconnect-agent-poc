@@ -562,8 +562,8 @@ func userinfoEndpoint(w http.ResponseWriter, r *http.Request) error {
 	delete(attrs, "birthplace")
 	delete(attrs, "birthcountry")
 
-	var claimNames map[string]string
-	var claims map[string]interface{}
+	claimNames := make(map[string]string)
+	claims := make(map[string]interface{})
 	for _, v := range strings.Fields(s.AcrValues) {
 		claimNames[v] = "srv1"
 		claims[v] = attrs[v]
