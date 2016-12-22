@@ -294,7 +294,7 @@ func authorizeEndpoint(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return &simpleError{Status: http.StatusInternalServerError}
 	}
-	qs.Set("state", string(ozwilloState))
+	qs.Set("state", base64.RawURLEncoding.EncodeToString(ozwilloState))
 	qs.Del("acr_values")
 	qs.Del("id_token_hint")
 
@@ -322,7 +322,9 @@ func oidcCallback(w http.ResponseWriter, r *http.Request) error {
 	}
 	qs := r.URL.Query()
 	var decodedState state
-	if err := json.Unmarshal([]byte(qs.Get("state")), &decodedState); err != nil {
+	if s, err := base64.RawURLEncoding.DecodeString(qs.Get("state")); err != nil {
+		return &simpleError{Status: http.StatusInternalServerError}
+	} else if err := json.Unmarshal(s, &decodedState); err != nil {
 		return &simpleError{Status: http.StatusInternalServerError}
 	}
 
