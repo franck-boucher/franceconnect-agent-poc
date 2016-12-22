@@ -601,9 +601,11 @@ func makeJwt(claims map[string]interface{}) (string, error) {
 		return "", err
 	}
 
-	sig := hmac.New(sha256.New, []byte(*clientSecret)).Sum(buf.Bytes())
+	mac := hmac.New(sha256.New, []byte(*clientSecret))
+	mac.Write(buf.Bytes())
+	sig := mac.Sum(nil)
 	buf.WriteRune('.')
-	buf.Write(sig)
+	buf.WriteString(base64.RawURLEncoding.EncodeToString(sig))
 
 	return buf.String(), nil
 }
