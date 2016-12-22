@@ -1,0 +1,16 @@
+[Unit]
+Description=Bridge Ozwillo/FranceConnect-Agent
+Documentation=https://github.com/ozwillo/franceconnect-agent-poc
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Restart=on-failure
+User=oasis
+Group=oasis
+Environment=OZFCA_MONGO=URI=
+Environment=OZFCA_CLIENT_ID=test CLIENT_SECRET=password
+ExecStart=/opt/franceconnect-agent-poc/franceconnect-agent-poc -listen=:8081 -ozwillo https://accounts.ozwillo-preprod.eu
+
+[Install]
+WantedBy=multi-user.target
