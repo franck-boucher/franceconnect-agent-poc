@@ -481,7 +481,9 @@ func parseIdToken(idToken string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	claims := make(map[string]interface{})
-	if err = json.Unmarshal(payload, claims); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.UseNumber()
+	if err = decoder.Decode(&claims); err != nil {
 		return nil, err
 	}
 	return claims, nil
@@ -536,7 +538,9 @@ func userinfoEndpoint(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var userinfo map[string]interface{}
-	if err = json.NewDecoder(resp.Body).Decode(&userinfo); err != nil {
+	decoder := json.NewDecoder(resp.Body)
+	decoder.UseNumber()
+	if err = decoder.Decode(&userinfo); err != nil {
 		log.Println("Error parsing UserInfo response:", err)
 		return &simpleError{Status: http.StatusInternalServerError}
 	}
