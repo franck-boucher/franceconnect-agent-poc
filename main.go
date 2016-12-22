@@ -399,7 +399,7 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 
 	var tokenResponse struct {
 		AccessToken string `json:"access_token"`
-		TokenType   string `json:"tokenType"`
+		TokenType   string `json:"token_type"`
 		ExpiresIn   uint16 `json:"expires_in"`
 		IdToken     string `json:"id_token"`
 	}
