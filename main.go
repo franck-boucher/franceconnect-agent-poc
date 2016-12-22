@@ -52,6 +52,13 @@ var (
 		// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 		Timeout: 5 * time.Minute,
 	}
+	// acrMap maps from eIDAS LoA URIs (from https://joinup.ec.europa.eu/sites/default/files/eidas_message_format_v1.0.pdf, section 3.2)
+	// to FranceConnect-specific values (see https://fcagentdevelopers.integ01.dev-franceconnect.fr/fournisseur-identite)
+	acrMap = map[string]string{
+		"http://eidas.europa.eu/LoA/low":         "eidas1",
+		"http://eidas.europa.eu/LoA/substantial": "eidas2",
+		"http://eidas.europa.eu/LoA/high":        "eidas3",
+	}
 )
 
 type state struct {
@@ -416,6 +423,12 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 	claims["iss"] = getBaseUri(r)
 	delete(claims, "app_admin")
 	delete(claims, "app_user")
+	// rewrite acr claim to FCA invalid values
+	if acr, ok := claims["acr"].(string); ok {
+		if acr, ok = acrMap[acr]; ok {
+			claims["acr"] = acr
+		}
+	}
 	tokenResponse.IdToken, err = makeJwt(claims)
 	if err != nil {
 		log.Println("Error signing ID Token:", err)
