@@ -45,3 +45,24 @@ Usage of ./franceconnect-agent-poc:
 
 Les paramètres `-client_id`, `-client_secret` et `-mongo-uri` peuvent être configurés par des variables d'environnement `OZFCA_CLIENT_ID`, `OZFCA_CLIENT_SECRET` et `OZFCA_MONGO_URI` respectivement, pour éviter de passer des informations sensibles sur la ligne de commande.  
 Par défaut, si `-mongo-uri` (ou `OZFCA_MONGO_URI`) est vide ou omis, le Connecteur cherchera à se connecter à la base de données par défaut sur la machine locale sur le port par défaut de MongoDB, sans authentification ; c'est donc l'équivalent de `mongodb://localhost:27017/`. Le format exact du paramètre est similaire au format standard de MongoDB mais plus libéral : https://godoc.org/gopkg.in/mgo.v2#Dial
+
+Schéma MongoDB
+--------------
+
+Le Connecteur utilise 2 collections MongoDB.
+
+La première, `state`, est à usage interne pour conserver l'état entre les différents échanges ; les données sont nettoyées automatiquement par MongoDB grâce à une TTL (l'index est créé automatiquement au lancement du Connecteur).
+
+La second collection, `attributs`, contient les attributs du profil spécifiques à FranceConnect Agent. Les données doivent être insérées manuellement.
+Chaque document correspond à un utilisateur Ozwillo, l'`_id` du document correspondant au `sub` de l'utilisateur. Les propriétés `birthplace` et `birthcountry` sont copiées comme propriétés du _User Info_, tandis que les autres propriétés sont encodés comme _Aggregate Claims_ (uniquement celles demandées _via_ `acr_values`).
+
+Par exemple:
+```json
+{
+  "_id": "7d444840-9dc0-11d1-b245-5ffdce74fad2",
+  "birthplace": "486",
+  "birthcountry": "33",
+  "job": "Elu",
+  "position": "Maire",
+  "belonging_population": "Mairie"
+}
