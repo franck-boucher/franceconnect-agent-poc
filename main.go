@@ -292,7 +292,7 @@ func authorizeEndpoint(w http.ResponseWriter, r *http.Request) error {
 		Nonce:     qs.Get("nonce"),
 	})
 	if err != nil {
-		return &simpleError{Status: http.StatusInternalServerError}
+		return err
 	}
 	qs.Set("state", base64.RawURLEncoding.EncodeToString(ozwilloState))
 	qs.Del("acr_values")
@@ -372,8 +372,7 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 	if _, err := session.DB("").C("state").FindId("code:"+code).Apply(mgo.Change{Remove: true}, &s); err == mgo.ErrNotFound {
 		return oauthError("invalid_grant")
 	} else if err != nil {
-		log.Println("Error retrieving state from DB", err)
-		return &simpleError{Status: http.StatusInternalServerError}
+		return err
 	}
 
 	req, err := http.NewRequest("POST", *ozwilloBaseURI+"/a/token", strings.NewReader(url.Values{
@@ -382,8 +381,7 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 		"code":         {code},
 	}.Encode()))
 	if err != nil {
-		log.Println("Error creating request to Token endpoint:", err)
-		return &simpleError{Status: http.StatusInternalServerError}
+		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(*clientID, *clientSecret)
@@ -404,8 +402,7 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 		IDToken     string `json:"id_token"`
 	}
 	if err = json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		log.Println("Error parsing Token response:", err)
-		return &simpleError{Status: http.StatusInternalServerError}
+		return err
 	}
 
 	// store state in DB keyed by tokenResponse.accessToken (to be retrieved by userinfoEndpoint)
