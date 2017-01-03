@@ -562,7 +562,7 @@ func userinfoEndpoint(w http.ResponseWriter, r *http.Request) error {
 	claimNames := make(map[string]string)
 	claims := make(map[string]interface{})
 	for _, v := range strings.Fields(s.AcrValues) {
-		claimNames[v] = "srv1"
+		claimNames[v] = "src1"
 		claims[v] = attrs[v]
 	}
 	signedClaims, err := makeJwt(claims)
