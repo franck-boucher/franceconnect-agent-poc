@@ -38,7 +38,7 @@ var (
 	mongoURI       = flag.String("mongo-uri", os.Getenv("OZFCA_MONGO_URI"), "MongoDB dial URI")
 	listen         = flag.String("listen", ":http", "Address on which to listen")
 	ozwilloBaseURI = flag.String("ozwillo", "https://accounts.ozwillo-preprod.eu", "Base URI of the Ozwillo Kernel")
-	clientId       = flag.String("client_id", os.Getenv("OZFCA_CLIENT_ID"), "Client ID for FranceConnect Agent (both at Ozwillo and FranceConnect sides)")
+	clientID       = flag.String("client_id", os.Getenv("OZFCA_CLIENT_ID"), "Client ID for FranceConnect Agent (both at Ozwillo and FranceConnect sides)")
 	clientSecret   = flag.String("client_secret", os.Getenv("OZFCA_CLIENT_SECRET"), "Client secret for FranceConnect Agent (both at Ozwillo and FranceConnect sides)")
 	fcaRedirectURI = flag.String("fcaRedirectUri", "https://fcagent.integ01.dev-franceconnect.fr/oidc_callback", "Redirect URI for FranceConnect Agent")
 )
@@ -62,7 +62,7 @@ var (
 )
 
 type state struct {
-	Id        string    `json:"-" bson:"_id"`
+	ID        string    `json:"-" bson:"_id"`
 	State     string    `json:"state,omitempty" bson:",omitempty"`
 	Scope     string    `json:"scope"`
 	AcrValues string    `json:"acr_values,omitempty" bson:"acr_values,omitempty"`
@@ -95,7 +95,7 @@ func (err *simpleError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (err *simpleError) Error() string {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "Status: %v", err.Status)
-	err.Header.Write(&b)
+	err.Header.Write(&b) // #nosec
 	return b.String()
 }
 
@@ -118,7 +118,7 @@ type oauthError string
 func (err oauthError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(map[string]string{"error": string(err)})
+	json.NewEncoder(w).Encode(map[string]string{"error": string(err)}) // #nosec
 }
 
 func (err oauthError) Error() string {
@@ -127,30 +127,30 @@ func (err oauthError) Error() string {
 
 var _ httpError = oauthError("")
 
-type redirectUri struct {
+type redirectURI struct {
 	u  url.URL
 	qs url.Values
 }
 
-func NewRedirectUri() *redirectUri {
-	return &redirectUri{
+func newRedirectURI() *redirectURI {
+	return &redirectURI{
 		u:  *fcaRedirectURL,
 		qs: fcaRedirectURL.Query(),
 	}
 }
 
-func (ruri *redirectUri) SetState(state string) {
+func (ruri *redirectURI) SetState(state string) {
 	ruri.qs.Set("state", state)
 }
 
-func (ruri *redirectUri) SetCode(code string) {
+func (ruri *redirectURI) SetCode(code string) {
 	ruri.qs.Set("code", code)
 }
 
-func (ruri *redirectUri) SetError(error string) {
+func (ruri *redirectURI) SetError(error string) {
 	ruri.qs.Set("error", error)
 }
-func (ruri *redirectUri) SetErrorDesc(error, desc, uri string) {
+func (ruri *redirectURI) SetErrorDesc(error, desc, uri string) {
 	ruri.SetError(error)
 	if desc != "" {
 		ruri.qs.Set("error_description", desc)
@@ -160,7 +160,7 @@ func (ruri *redirectUri) SetErrorDesc(error, desc, uri string) {
 	}
 }
 
-func (ruri *redirectUri) String() string {
+func (ruri *redirectURI) String() string {
 	ruri.u.RawQuery = ruri.qs.Encode()
 	return ruri.u.String()
 }
@@ -168,7 +168,7 @@ func (ruri *redirectUri) String() string {
 func main() {
 	flag.Parse()
 
-	if *clientId == "" || *clientSecret == "" {
+	if *clientID == "" || *clientSecret == "" {
 		log.Fatalln("client_id and client_server must be set")
 	}
 
@@ -186,7 +186,7 @@ func main() {
 	}
 
 	// XXX: Can't use ExpireAfter:0 as that's the default value and wouldn't enable TTL on the index
-	_ = session.DB("").C("state").EnsureIndex(mgo.Index{Key: []string{"expires_at"}, ExpireAfter: 1 * time.Second, Background: true})
+	session.DB("").C("state").EnsureIndex(mgo.Index{Key: []string{"expires_at"}, ExpireAfter: 1 * time.Second, Background: true}) // #nosec
 
 	server := http.Server{
 		Addr:    *listen,
@@ -241,14 +241,14 @@ func authorizeEndpoint(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	qs := r.URL.Query()
-	if qs.Get("client_id") != *clientId {
+	if qs.Get("client_id") != *clientID {
 		return &simpleError{Status: http.StatusBadRequest, Body: "Unknown client_id"}
 	}
 	if qs.Get("redirect_uri") != *fcaRedirectURI {
 		return &simpleError{Status: http.StatusBadRequest, Body: "Invalid redirect_uri"}
 	}
 
-	errorRedirect := NewRedirectUri()
+	errorRedirect := newRedirectURI()
 
 	s := qs.Get("state")
 	errorRedirect.SetState(s)
@@ -298,13 +298,13 @@ func authorizeEndpoint(w http.ResponseWriter, r *http.Request) error {
 	qs.Del("acr_values")
 	qs.Del("id_token_hint")
 
-	qs.Set("redirect_uri", getRedirectUri(r))
+	qs.Set("redirect_uri", getRedirectURI(r))
 
 	http.Redirect(w, r, *ozwilloBaseURI+"/a/auth?"+qs.Encode(), http.StatusSeeOther)
 	return nil
 }
 
-func getBaseUri(r *http.Request) string {
+func getBaseURI(r *http.Request) string {
 	proto := r.Header.Get("X-Forwarded-Proto")
 	if proto == "" {
 		proto = "http"
@@ -312,8 +312,8 @@ func getBaseUri(r *http.Request) string {
 	return proto + "://" + r.Host
 }
 
-func getRedirectUri(r *http.Request) string {
-	return getBaseUri(r) + "/oidc_callback"
+func getRedirectURI(r *http.Request) string {
+	return getBaseURI(r) + "/oidc_callback"
 }
 
 func oidcCallback(w http.ResponseWriter, r *http.Request) error {
@@ -328,25 +328,25 @@ func oidcCallback(w http.ResponseWriter, r *http.Request) error {
 		return &simpleError{Status: http.StatusInternalServerError}
 	}
 
-	redirectUri := NewRedirectUri()
-	redirectUri.SetState(decodedState.State)
+	ruri := newRedirectURI()
+	ruri.SetState(decodedState.State)
 
 	if code := qs.Get("code"); code != "" {
 		// store 'decodedState' in DB keyed by 'code' (to be retrieved by tokenEndpoint)
 		// 1 minute is the default Ozwillo expiration delay for authorization codes
-		decodedState.Id = "code:" + code
+		decodedState.ID = "code:" + code
 		decodedState.ExpiresAt = time.Now().Add(1 * time.Minute)
 		if err := session.DB("").C("state").Insert(decodedState); err != nil {
-			redirectUri.SetError("server_error")
+			ruri.SetError("server_error")
 		} else {
-			redirectUri.SetCode(code)
+			ruri.SetCode(code)
 		}
 	} else if error := qs.Get("error"); error != "" {
-		redirectUri.SetErrorDesc(error, qs.Get("error_description"), qs.Get("error_uri"))
+		ruri.SetErrorDesc(error, qs.Get("error_description"), qs.Get("error_uri"))
 	} else {
-		redirectUri.SetError("server_error")
+		ruri.SetError("server_error")
 	}
-	http.Redirect(w, r, redirectUri.String(), http.StatusSeeOther)
+	http.Redirect(w, r, ruri.String(), http.StatusSeeOther)
 	return nil
 }
 
@@ -357,7 +357,7 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 		return &simpleError{Status: http.StatusUnsupportedMediaType}
 	}
-	if r.PostFormValue("client_id") != *clientId || r.PostFormValue("client_secret") != *clientSecret {
+	if r.PostFormValue("client_id") != *clientID || r.PostFormValue("client_secret") != *clientSecret {
 		return oauthError("invalid_client")
 	}
 	if r.PostFormValue("grant_type") != "authorization_code" {
@@ -378,7 +378,7 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 
 	req, err := http.NewRequest("POST", *ozwilloBaseURI+"/a/token", strings.NewReader(url.Values{
 		"grant_type":   {"authorization_code"},
-		"redirect_uri": {getRedirectUri(r)},
+		"redirect_uri": {getRedirectURI(r)},
 		"code":         {code},
 	}.Encode()))
 	if err != nil {
@@ -386,14 +386,14 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 		return &simpleError{Status: http.StatusInternalServerError}
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.SetBasicAuth(*clientId, *clientSecret)
+	req.SetBasicAuth(*clientID, *clientSecret)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Error calling Token endpoint:", err)
 		return &simpleError{Status: http.StatusBadGateway}
 	}
-	defer resp.Body.Close()
-	if err := checkStatus(resp, "Token"); err != nil {
+	defer resp.Body.Close() // #nosec
+	if err = checkStatus(resp, "Token"); err != nil {
 		return err
 	}
 
@@ -401,7 +401,7 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 		AccessToken string `json:"access_token"`
 		TokenType   string `json:"token_type"`
 		ExpiresIn   uint16 `json:"expires_in"`
-		IdToken     string `json:"id_token"`
+		IDToken     string `json:"id_token"`
 	}
 	if err = json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		log.Println("Error parsing Token response:", err)
@@ -409,20 +409,20 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// store state in DB keyed by tokenResponse.accessToken (to be retrieved by userinfoEndpoint)
-	s.Id = "token:" + tokenResponse.AccessToken
+	s.ID = "token:" + tokenResponse.AccessToken
 	s.ExpiresAt = time.Now().Add(time.Duration(tokenResponse.ExpiresIn) * time.Second)
-	if err := session.DB("").C("state").Insert(s); err != nil {
+	if err = session.DB("").C("state").Insert(s); err != nil {
 		return &simpleError{Status: http.StatusInternalServerError}
 	}
 
 	// re-sign id_token
-	claims, err := parseIdToken(tokenResponse.IdToken)
+	claims, err := parseIDToken(tokenResponse.IDToken)
 	if err != nil {
 		log.Println("Malformed ID Token from Ozwillo:", err)
 		return &simpleError{Status: http.StatusBadGateway}
 	}
 
-	claims["iss"] = getBaseUri(r)
+	claims["iss"] = getBaseURI(r)
 	delete(claims, "app_admin")
 	delete(claims, "app_user")
 	// rewrite acr claim to FCA invalid values
@@ -431,7 +431,7 @@ func tokenEndpoint(w http.ResponseWriter, r *http.Request) error {
 			claims["acr"] = acr
 		}
 	}
-	tokenResponse.IdToken, err = makeJwt(claims)
+	tokenResponse.IDToken, err = makeJwt(claims)
 	if err != nil {
 		log.Println("Error signing ID Token:", err)
 		return &simpleError{Status: http.StatusInternalServerError}
@@ -470,7 +470,7 @@ func checkStatus(resp *http.Response, endpointName string) error {
 	}
 }
 
-func parseIdToken(idToken string) (map[string]interface{}, error) {
+func parseIDToken(idToken string) (map[string]interface{}, error) {
 	parts := strings.Split(idToken, ".")
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("expected 3 parts, got %d\n", len(parts))
@@ -533,7 +533,7 @@ func userinfoEndpoint(w http.ResponseWriter, r *http.Request) error {
 		return &simpleError{Status: http.StatusBadGateway}
 	}
 	defer resp.Body.Close()
-	if err := checkStatus(resp, "UserInfo"); err != nil {
+	if err = checkStatus(resp, "UserInfo"); err != nil {
 		return err
 	}
 
@@ -602,7 +602,9 @@ func makeJwt(claims map[string]interface{}) (string, error) {
 	}
 
 	mac := hmac.New(sha256.New, []byte(*clientSecret))
-	mac.Write(buf.Bytes())
+	if _, err := mac.Write(buf.Bytes()); err != nil {
+		return "", err
+	}
 	sig := mac.Sum(nil)
 	buf.WriteRune('.')
 	buf.WriteString(base64.RawURLEncoding.EncodeToString(sig))
