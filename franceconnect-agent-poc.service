@@ -8,8 +8,8 @@ Wants=network-online.target
 Restart=on-failure
 User=oasis
 Group=oasis
-Environment=OZFCA_MONGO=URI=
-Environment=OZFCA_CLIENT_ID=test CLIENT_SECRET=password
+Environment=OZFCA_MONGO_URI=
+Environment=OZFCA_CLIENT_ID=test OZFCA_CLIENT_SECRET=password
 ExecStart=/opt/franceconnect-agent-poc/franceconnect-agent-poc -listen=:8081 -ozwillo https://accounts.ozwillo-preprod.eu
 
 [Install]
