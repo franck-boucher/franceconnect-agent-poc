@@ -94,7 +94,7 @@ func (err *simpleError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (err *simpleError) Error() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "Status: %v", err.Status)
+	fmt.Fprintf(&b, "Status: %v", err.Status) // #nosec
 	err.Header.Write(&b) // #nosec
 	return b.String()
 }
@@ -603,8 +603,8 @@ func makeJwt(claims map[string]interface{}) (string, error) {
 		return "", err
 	}
 	sig := mac.Sum(nil)
-	buf.WriteRune('.')
-	buf.WriteString(base64.RawURLEncoding.EncodeToString(sig))
+	buf.WriteRune('.') // #nosec
+	buf.WriteString(base64.RawURLEncoding.EncodeToString(sig)) // #nosec
 
 	return buf.String(), nil
 }
