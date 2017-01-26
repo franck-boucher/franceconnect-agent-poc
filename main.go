@@ -59,13 +59,18 @@ var (
 		"http://eidas.europa.eu/LoA/substantial": "eidas2",
 		"http://eidas.europa.eu/LoA/high":        "eidas3",
 	}
+	acrMapReverse = map[string]string{
+		"eidas1": "http://eidas.europa.eu/LoA/low",
+		"eidas2": "http://eidas.europa.eu/LoA/substantial",
+		"eidas3": "http://eidas.europa.eu/LoA/high",
+	}
 )
 
 type state struct {
 	ID        string    `json:"-" bson:"_id"`
 	State     string    `json:"state,omitempty" bson:",omitempty"`
 	Scope     string    `json:"scope"`
-	AcrValues string    `json:"acr_values,omitempty" bson:"acr_values,omitempty"`
+	AcrValues []string  `json:"acr_values,omitempty" bson:"acr_values,omitempty"`
 	Nonce     string    `json:"nonce,omitempty" bson:",omitempty"`
 	ExpiresAt time.Time `json:"-" bson:"expires_at"`
 }
@@ -273,7 +278,7 @@ func authorizeEndpoint(w http.ResponseWriter, r *http.Request) error {
 		return redirectError(errorRedirect.String())
 	}
 
-	// Replace scope, state and redirect_uri; remove acr_values and id_token_hint
+	// Replace scope, acr_values, state, redirect_uri; remove id_token_hint
 	scope := qs.Get("scope")
 	ozwilloScopes := make([]string, 0, 5)
 	for _, s := range strings.Fields(scope) {
@@ -285,17 +290,25 @@ func authorizeEndpoint(w http.ResponseWriter, r *http.Request) error {
 	}
 	qs.Set("scope", strings.Join(ozwilloScopes, " "))
 
+	acrValues := strings.Fields(qs.Get("acr_values"))
+	ozwilloAcrValues := make([]string, 0, len(acrMapReverse))
+	for _, a := range acrValues {
+		if acr, ok := acrMapReverse[a]; ok {
+			ozwilloAcrValues = append(ozwilloAcrValues, acr)
+		}
+	}
+	qs.Set("acr_values", strings.Join(ozwilloAcrValues, " "))
+
 	ozwilloState, err := json.Marshal(state{
 		State:     s,
 		Scope:     scope,
-		AcrValues: qs.Get("acr_values"),
+		AcrValues: acrValues,
 		Nonce:     qs.Get("nonce"),
 	})
 	if err != nil {
 		return err
 	}
 	qs.Set("state", base64.RawURLEncoding.EncodeToString(ozwilloState))
-	qs.Del("acr_values")
 	qs.Del("id_token_hint")
 
 	qs.Set("redirect_uri", getRedirectURI(r))
@@ -561,7 +574,7 @@ func userinfoEndpoint(w http.ResponseWriter, r *http.Request) error {
 
 	claimNames := make(map[string]string)
 	claims := make(map[string]interface{})
-	for _, v := range strings.Fields(s.AcrValues) {
+	for _, v := range s.AcrValues {
 		if vv, ok := attrs[v]; ok {
 			claimNames[v] = "src1"
 			claims[v] = vv
