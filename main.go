@@ -575,6 +575,9 @@ func userinfoEndpoint(w http.ResponseWriter, r *http.Request) error {
 	claimNames := make(map[string]string)
 	claims := make(map[string]interface{})
 	for _, v := range s.AcrValues {
+		if _, ok := acrMapReverse[v]; ok {
+			continue // skip ACR values (not attributes)
+		}
 		if vv, ok := attrs[v]; ok {
 			claimNames[v] = "src1"
 			claims[v] = vv
